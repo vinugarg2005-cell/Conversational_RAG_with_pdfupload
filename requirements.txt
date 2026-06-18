@@ -1,10 +1,12 @@
 langchain
-langchain_community
-langchain_core
+langchain-community
+langchain-core
 python-dotenv
 streamlit
-langchain_huggingface
+langchain-huggingface
 langchain-groq
-langchain_chroma
+langchain-chroma
 sentence-transformers
 pypdf
+chromadb==0.4.24
+protobuf==4.25.3

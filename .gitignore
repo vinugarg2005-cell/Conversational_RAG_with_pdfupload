@@ -1,0 +1,9 @@
+cd "/Users/vinayakgarg/Desktop/RAG Chatbot with history conversation"
+cat > .gitignore << 'EOF'
+venv/
+venv311/
+__pycache__/
+*.pyc
+.env
+temp.pdf
+EOF

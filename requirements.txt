@@ -6,5 +6,5 @@ streamlit
 langchain_huggingface
 langchain-groq
 langchain_chroma
-sentence-transformners
+sentence-transformers
 pypdf

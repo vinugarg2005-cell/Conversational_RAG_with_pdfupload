@@ -4,6 +4,7 @@ from langchain_community.document_loaders import PyPDFLoader,CSVLoader,Docx2txtL
 from langchain_chroma import Chroma
 import streamlit as st
 import os
+from langchain_community.document_loaders import WebBaseLoader
 from langchain_classic.chains import create_history_aware_retriever
 from langchain_classic.chains import create_retrieval_chain
 from langchain_core.prompts import ChatPromptTemplate,MessagesPlaceholder
@@ -34,7 +35,14 @@ if api_key:
     if 'store' not in st.session_state:
         st.session_state.store = {}
 
+    url_input = st.text_input("Enter url:")
     uploaded_files = st.file_uploader("Upload a PDF file",type=["pdf", "csv", "xlsx", "docx", "txt"],accept_multiple_files=True)
+    if url_input:
+        documents=[]
+        loader = WebBaseLoader(url_input)
+        docs = loader.load()
+        documents.extend(docs)
+
     if uploaded_files:
         documents = []
         for uploaded_file in uploaded_files:
@@ -45,10 +53,6 @@ if api_key:
             # File type detect karo
             if uploaded_file.name.endswith(".pdf"):
                 loader = PyPDFLoader(temp_path)
-            elif uploaded_file.name.endswith(".csv"):
-                loader = CSVLoader(temp_path)
-            elif uploaded_file.name.endswith(".xlsx"):
-                loader = UnstructuredExcelLoader(temp_path)
             elif uploaded_file.name.endswith(".docx"):
                 loader = Docx2txtLoader(temp_path)
             elif uploaded_file.name.endswith(".txt"):

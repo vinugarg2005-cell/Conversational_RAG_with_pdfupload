@@ -50,7 +50,7 @@ if api_key:
             with open(temp_path, "wb") as file:
                 file.write(uploaded_file.getvalue())
 
-            # File type detect karo
+
             if uploaded_file.name.endswith(".pdf"):
                 loader = PyPDFLoader(temp_path)
             elif uploaded_file.name.endswith(".docx"):
@@ -63,6 +63,13 @@ if api_key:
             docs=loader.load()
             documents.extend(docs)
 
+    if url_input:
+        documents=[]
+        loader = WebBaseLoader(url_input)
+        docs = loader.load()
+        documents.extend(docs)
+
+    if documents:       
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=5000,chunk_overlap=500)
         chunks = text_splitter.split_documents(documents)
         vectorstore = Chroma.from_documents(documents=chunks,embedding=embeddings)

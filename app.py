@@ -37,10 +37,9 @@ if api_key:
 
     url_input = st.text_input("Enter url:")
     uploaded_files = st.file_uploader("Upload a PDF file",type=["pdf", "csv", "xlsx", "docx", "txt"],accept_multiple_files=True)
-    
+    documents=[]
 
     if uploaded_files:
-        documents = []
         for uploaded_file in uploaded_files:
             temp_path = f"./temp_{uploaded_file.name}"
             with open(temp_path, "wb") as file:
@@ -61,7 +60,6 @@ if api_key:
 
     if url_input:
         try:
-            documents=[]
             loader = WebBaseLoader(url_input)
             docs = loader.load()
             documents.extend(docs)

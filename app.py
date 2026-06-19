@@ -37,11 +37,7 @@ if api_key:
 
     url_input = st.text_input("Enter url:")
     uploaded_files = st.file_uploader("Upload a PDF file",type=["pdf", "csv", "xlsx", "docx", "txt"],accept_multiple_files=True)
-    if url_input:
-        documents=[]
-        loader = WebBaseLoader(url_input)
-        docs = loader.load()
-        documents.extend(docs)
+    
 
     if uploaded_files:
         documents = []
@@ -63,83 +59,86 @@ if api_key:
             docs=loader.load()
             documents.extend(docs)
 
-    elif url_input:
-        documents=[]
-        loader = WebBaseLoader(url_input)
-        docs = loader.load()
-        documents.extend(docs)
+    if url_input:
+        try:
+            documents=[]
+            loader = WebBaseLoader(url_input)
+            docs = loader.load()
+            documents.extend(docs)
+        except Exception as e:
+            st.error("URL not uploaded:{e}")
 
-        if documents:       
-            text_splitter = RecursiveCharacterTextSplitter(chunk_size=5000,chunk_overlap=500)
-            chunks = text_splitter.split_documents(documents)
-            vectorstore = Chroma.from_documents(documents=chunks,embedding=embeddings)
-            retriever = vectorstore.as_retriever()
+    if documents:       
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=5000,chunk_overlap=500)
+        chunks = text_splitter.split_documents(documents)
+        vectorstore = Chroma.from_documents(documents=chunks,embedding=embeddings)
+        retriever = vectorstore.as_retriever()
 
-            contexualized_q_system_prompt = [
-                "Given a chat history and a latest user question "
-                "which might reference context in the chat history, "
-                "formulate a standalone question which can be understood "
-                "without the chat history. Do not answer the question, "
-                "just reformulate it if needed and otherwise return it as it is."
+        contexualized_q_system_prompt = [
+            "Given a chat history and a latest user question "
+            "which might reference context in the chat history, "
+            "formulate a standalone question which can be understood "
+            "without the chat history. Do not answer the question, "
+            "just reformulate it if needed and otherwise return it as it is."
+        ]
+
+        contexualized_q_prompt = ChatPromptTemplate.from_messages(
+            [
+            ("system",contexualized_q_system_prompt),
+            MessagesPlaceholder("chat_history"),
+            ("human","{input}"),
             ]
+        )
 
-            contexualized_q_prompt = ChatPromptTemplate.from_messages(
-                [
-                ("system",contexualized_q_system_prompt),
+        history_aware_retriever = create_history_aware_retriever(llm,retriever,contexualized_q_prompt)
+
+        system_prompt = [
+            "You are an assistant for question answering tasks. "
+            "Use the following pieces of retrieved context to answer "
+            "the question. If you don't know the answer, say that you "
+            "don't know. Use three sentences maximum and keep the answer concise."
+            "\n\n"
+            "{context}"
+        ]
+
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", system_prompt),
                 MessagesPlaceholder("chat_history"),
-                ("human","{input}"),
-                ]
-            )
-
-            history_aware_retriever = create_history_aware_retriever(llm,retriever,contexualized_q_prompt)
-
-            system_prompt = [
-                "You are an assistant for question answering tasks. "
-                "Use the following pieces of retrieved context to answer "
-                "the question. If you don't know the answer, say that you "
-                "don't know. Use three sentences maximum and keep the answer concise."
-                "\n\n"
-                "{context}"
+                ("human", "{input}"),
             ]
+        )
 
-            prompt = ChatPromptTemplate.from_messages(
-                [
-                    ("system", system_prompt),
-                    MessagesPlaceholder("chat_history"),
-                    ("human", "{input}"),
-                ]
+        question_answer_chain = create_stuff_documents_chain(llm,prompt)
+        rag_chain = create_retrieval_chain(history_aware_retriever,question_answer_chain)
+
+
+        def get_session_history(session:str) -> BaseChatMessageHistory:
+            if session not in st.session_state.store:
+                st.session_state.store[session] = ChatMessageHistory()
+            return st.session_state.store[session]
+
+        conversational_rag_chain = RunnableWithMessageHistory(
+            rag_chain,get_session_history,
+            input_messages_key="input",
+            history_messages_key="chat_history",
+            output_messages_key="answer",
+        )
+
+        user_input = st.text_input("Ask your question")
+        if user_input:
+            session_history = get_session_history(session_id)
+            response = conversational_rag_chain.invoke(
+                {"input":user_input},
+                config={"configurable":{"session_id":session_id}}
             )
 
-            question_answer_chain = create_stuff_documents_chain(llm,prompt)
-            rag_chain = create_retrieval_chain(history_aware_retriever,question_answer_chain)
+            st.write(st.session_state.store)
+            st.write("Assistant:",response["answer"])
+            st.write("Chat History:",session_history.messages)
 
-
-            def get_session_history(session:str) -> BaseChatMessageHistory:
-                if session not in st.session_state.store:
-                    st.session_state.store[session] = ChatMessageHistory()
-                return st.session_state.store[session]
-
-            conversational_rag_chain = RunnableWithMessageHistory(
-                rag_chain,get_session_history,
-                input_messages_key="input",
-                history_messages_key="chat_history",
-                output_messages_key="answer",
-            )
-
-            user_input = st.text_input("Ask your question")
-            if user_input:
-                session_history = get_session_history(session_id)
-                response = conversational_rag_chain.invoke(
-                    {"input":user_input},
-                    config={"configurable":{"session_id":session_id}}
-                )
-
-                st.write(st.session_state.store)
-                st.write("Assistant:",response["answer"])
-                st.write("Chat History:",session_history.messages)
-
-    else:
-        st.warning("Please enter the Groq API Key")
+else:
+    st.warning("Please enter the Groq API Key")
 
 
 

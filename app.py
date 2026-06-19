@@ -34,7 +34,7 @@ if api_key:
     if 'store' not in st.session_state:
         st.session_state.store = {}
 
-    uploaded_files = st.file_uploader("Upload a PDF file",ype=["pdf", "csv", "xlsx", "docx", "txt"],accept_multiple_files=True)
+    uploaded_files = st.file_uploader("Upload a PDF file",type=["pdf", "csv", "xlsx", "docx", "txt"],accept_multiple_files=True)
     if uploaded_files:
         documents = []
         for uploaded_file in uploaded_files:

@@ -1,6 +1,6 @@
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyPDFLoader,CSVLoader,Docx2txtLoader,TextLoader,UnstructuredExcelLoader
 from langchain_chroma import Chroma
 import streamlit as st
 import os
@@ -34,14 +34,28 @@ if api_key:
     if 'store' not in st.session_state:
         st.session_state.store = {}
 
-    pdf_upload = st.file_uploader("Upload a PDF file",type="pdf",accept_multiple_files=True)
-    if pdf_upload:
+    uploaded_files = st.file_uploader("Upload a PDF file",ype=["pdf", "csv", "xlsx", "docx", "txt"],accept_multiple_files=True)
+    if uploaded_files:
         documents = []
-        for pdf in pdf_upload:
-            temppdf = f"./temppdf_{pdf.name}"
-            with open(temppdf,"wb") as file:
-                file.write(pdf.getvalue())
-            loader = PyPDFLoader(temppdf)
+        for uploaded_file in uploaded_files:
+            temp_path = f"./temp_{uploaded_file.name}"
+            with open(temp_path, "wb") as file:
+                file.write(uploaded_file.getvalue())
+
+            # File type detect karo
+            if uploaded_file.name.endswith(".pdf"):
+                loader = PyPDFLoader(temp_path)
+            elif uploaded_file.name.endswith(".csv"):
+                loader = CSVLoader(temp_path)
+            elif uploaded_file.name.endswith(".xlsx"):
+                loader = UnstructuredExcelLoader(temp_path)
+            elif uploaded_file.name.endswith(".docx"):
+                loader = Docx2txtLoader(temp_path)
+            elif uploaded_file.name.endswith(".txt"):
+                loader = TextLoader(temp_path)
+            else:
+                st.warning(f"Unsupported file type: {uploaded_file.name}")
+                continue
             docs=loader.load()
             documents.extend(docs)
 

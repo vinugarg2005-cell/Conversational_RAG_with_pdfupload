@@ -8,5 +8,10 @@ langchain-groq
 langchain-chroma
 sentence-transformers
 pypdf
-chromadb==0.4.24
+chromadb==0.5.0
+numpy<2.0
 protobuf==4.25.3
+unstructured
+docx2txt
+openpyxl
+pandas
